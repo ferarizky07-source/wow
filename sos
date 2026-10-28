@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Lomba Lari - Kura-kura vs Kelinci (Fruit)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family: 'Segoe UI', sans-serif; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #74b9ff 0%, #55efc4 50%, #ffeaa7 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;
+    color: #2d3436;
+  }
+  .container {
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 25px;
+    max-width: 1000px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    border: 3px solid #fff;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 1.8em;
+    color: #2d3436;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+  }
+  .subtitle {
+    text-align: center;
+    margin-bottom: 15px;
+    opacity: 0.8;
+    font-size: 0.9em;
+    color: #636e72;
+  }
+  .score-board {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 15px;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    padding: 12px;
+    border-radius: 15px;
+    color: #fff;
+  }
+  .score-item { text-align: center; flex: 1; }
+  .score-item .label { font-size: 0.85em; opacity: 0.9; }
+  .score-item .value { font-size: 1.8em; font-weight: bold; }
+  .score-item.left .value { color: #55efc4; }
+  .score-item.right .value { color: #fd79a8; }
+  .score-item.center .value { color: #ffeaa7; font-size: 1.2em; }
+
+  .turn-indicator {
+    text-align: center;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    font-weight: bold;
+    font-size: 1.1em;
+    transition: all 0.4s;
+  }
+  .turn-indicator.left-turn {
+    background: linear-gradient(135deg, #00b894, #00cec9);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(0,184,148,0.5);
+  }
+  .turn-indicator.right-turn {
+    background: linear-gradient(135deg, #fd79a8, #e84393);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(253,121,168,0.5);
+  }
+
+  /* Race Track */
+  .race-track {
+    position: relative;
+    background: linear-gradient(to bottom, #81ecec 0%, #74b9ff 100%);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 15px;
+    border: 3px solid #fff;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+  }
+  .track-label {
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+    color: #2d3436;
+  }
+  .lane {
+    position: relative;
+    height: 80px;
+    background: repeating-linear-gradient(
+      90deg,
+      #dfe6e9 0px,
+      #dfe6e9 40px,
+      #b2bec3 40px,
+      #b2bec3 42px
+    );
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border: 2px solid #636e72;
+    overflow: hidden;
+  }
+  .lane:last-child { margin-bottom: 0; }
+  .finish-line {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 30px;
+    height: 100%;
+    background: repeating-linear-gradient(
+      90deg,
+      #2d3436 0px,
+      #2d3436 5px,
+      #fff 5px,
+      #fff 10px
+    );
+    z-index: 1;
+  }
+  .finish-line::before {
+    content: '🏁';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5em;
+  }
+  .character {
+    position: absolute;
+    left: 5%;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 3em;
+    transition: left 0.8s ease;
+    z-index: 2;
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+  }
+  .character.active {
+    animation: run 0.3s infinite alternate;
+  }
+  @keyframes run {
+    from { transform: translateY(-50%) scale(1); }
+    to { transform: translateY(-55%) scale(1.1); }
+  }
+  .character.winner {
+    animation: celebrate 0.5s infinite alternate;
+  }
+  @keyframes celebrate {
+    from { transform: translateY(-50%) scale(1) rotate(-5deg); }
+    to { transform: translateY(-60%) scale(1.2) rotate(5deg); }
+  }
+
+  /* Question Area */
+  .question-box {
+    background: rgba(108,92,231,0.1);
+    padding: 18px;
+    border-radius: 15px;
+    margin-bottom: 10px;
+    border: 2px solid #6c5ce7;
+  }
+  .q-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .q-number {
+    color: #6c5ce7;
+    font-weight: bold;
+    font-size: 0.9em;
+  }
+  .q-topic {
+    background: rgba(108,92,231,0.2);
+    border: 1px solid #6c5ce7;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    color: #6c5ce7;
+    font-weight: bold;
+  }
+  .question {
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    line-height: 1.5;
+    color: #2d3436;
+  }
+  .options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .option {
+    background: #fff;
+    border: 2px solid #dfe6e9;
+    color: #2d3436;
+    padding: 12px 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: left;
+    font-size: 0.92em;
+  }
+  .option:hover:not(:disabled) {
+    background: #dfe6e9;
+    transform: translateY(-2px);
+    border-color: #6c5ce7;
+  }
+  .option.correct {
+    background: #00b894 !important;
+    border-color: #55efc4 !important;
+    color: #fff !important;
+    animation: correctPulse 0.5s;
+  }
+  .option.wrong {
+    background: #d63031 !important;
+    border-color: #ff7675 !important;
+    color: #fff !important;
+    animation: shake 0.5s;
+  }
+  @keyframes correctPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+  .feedback {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: bold;
+    display: none;
+  }
+  .feedback.show { display: block; animation: fadeIn 0.4s; }
+  .feedback.correct { background: rgba(0,184,148,0.2); color: #00b894; }
+  .feedback.wrong { background: rgba(214,48,49,0.2); color: #d63031; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Result Screen */
+  .result-screen {
+    display: none;
+    text-align: center;
+    padding: 30px;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    border-radius: 15px;
+    color: #fff;
+  }
+  .result-screen.show { display: block; animation: fadeIn 0.6s; }
+  .result-icon { font-size: 5em; margin-bottom: 15px; }
+  .result-title { font-size: 2em; margin-bottom: 10px; }
+  .result-msg { font-size: 1.05em; margin-bottom: 20px; line-height: 1.6; }
+  .btn {
+    background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+    color: #2d3436;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1em;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: transform 0.2s;
+  }
+  .btn:hover { transform: scale(1.05); }
+
+  @media (max-width: 600px) {
+    .options { grid-template-columns: 1fr; }
+    h1 { font-size: 1.3em; }
+    .character { font-size: 2em; }
+    .score-item .value { font-size: 1.4em; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🏃‍♂️ Lomba Lari: Kura-kura vs Kelinci 🐰</h1>
+  <p class="subtitle">English Vocabulary — Fruit (Buah-buahan)</p>
+
+  <div class="score-board">
+    <div class="score-item left">
+      <div class="label">🐢 KURA-KURA</div>
+      <div class="value" id="scoreLeft">0</div>
+    </div>
+    <div class="score-item center">
+      <div class="label">📋 RONDE</div>
+      <div class="value" id="roundInfo">1 / 5</div>
+    </div>
+    <div class="score-item right">
+      <div class="label">🐰 KELINCI</div>
+      <div class="value" id="scoreRight">0</div>
+    </div>
+  </div>
+
+  <div class="turn-indicator left-turn" id="turnIndicator">
+    🎤 Giliran: KURA-KURA 🐢
+  </div>
+
+  <div class="race-track">
+    <div class="track-label">🐢 Lintasan Kura-kura</div>
+    <div class="lane">
+      <div class="finish-line"></div>
+      <div class="character" id="turtle">🐢</div>
+    </div>
+    <div class="track-label">🐰 Lintasan Kelinci</div>
+    <div class="lane">
+      <div class="finish-line"></div>
+      <div class="character" id="rabbit">🐰</div>
+    </div>
+  </div>
+
+  <div id="gameArea">
+    <div class="question-box">
+      <div class="q-header">
+        <div class="q-number" id="qNumber">Soal 1 dari 10</div>
+        <div class="q-topic" id="qTopic">🍓 Fruit</div>
+      </div>
+      <div class="question" id="questionText">Memuat pertanyaan...</div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+  </div>
+
+  <div class="result-screen" id="resultScreen">
+    <div class="result-icon" id="resultIcon">🏆</div>
+    <div class="result-title" id="resultTitle">Hasil Lomba</div>
+    <div class="result-msg" id="resultMsg"></div>
+    <button class="btn" onclick="restartGame()">🔄 Main Lagi</button>
+  </div>
+</div>
+
+<script>
+  // 5 topik buah, masing-masing punya 2 versi soal (kura-kura & kelinci)
+  const questions = [
+    {
+      topic: "🍓 Strawberry",
+      left: {
+        q: "What is the English name of 'stroberi'?",
+        options: ["Blueberry", "Strawberry", "Raspberry", "Blackberry"],
+        answer: 1,
+        explain: "'Stroberi' dalam bahasa Inggris adalah 'Strawberry'. Strawberry adalah buah kecil berwarna merah dengan biji di permukaan."
+      },
+      right: {
+        q: "What color is a ripe strawberry?",
+        options: ["Yellow", "Blue", "Red", "Green"],
+        answer: 2,
+        explain: "Stroberi yang matang berwarna merah (red). 'Ripe' = matang."
+      }
+    },
+    {
+      topic: "🍇 Grape",
+      left: {
+        q: "Grapes usually grow in ...?",
+        options: ["Singles", "Bunches", "Pairs", "Lines"],
+        answer: 1,
+        explain: "Anggur (grape) biasanya tumbuh dalam kelompok/tandan (bunches). Satu tandan bisa berisi banyak buah anggur."
+      },
+      right: {
+        q: "Which of these is a color of grape?",
+        options: ["Orange", "Purple", "Pink", "Brown"],
+        answer: 1,
+        explain: "Anggur ada yang berwarna ungu (purple), hijau (green), atau merah (red). Purple grape adalah yang paling umum."
+      }
+    },
+    {
+      topic: "🍍 Pineapple",
+      left: {
+        q: "Pineapple has a ... skin that is difficult to peel.",
+        options: ["Soft", "Smooth", "Rough", "Thin"],
+        answer: 2,
+        explain: "Nanas (pineapple) memiliki kulit yang kasar (rough) dan berduri, sulit dikupas tanpa alat."
+      },
+      right: {
+        q: "What is the taste of pineapple?",
+        options: ["Sour and salty", "Sweet and sour", "Bitter", "Spicy"],
+        answer: 1,
+        explain: "Nanas rasanya manis dan asam (sweet and sour). 'Sweet' = manis, 'sour' = asam."
+      }
+    },
+    {
+      topic: "🥥 Coconut",
+      left: {
+        q: "Coconut tree is often found near the ...?",
+        options: ["Mountain", "Beach", "Forest", "City"],
+        answer: 1,
+        explain: "Pohon kelapa (coconut tree) sering ditemukan di dekat pantai (beach). Kelapa adalah ciri khas daerah tropis pesisir."
+      },
+      right: {
+        q: "What is inside a coconut?",
+        options: ["Red juice", "White meat and water", "Yellow seeds", "Blue liquid"],
+        answer: 1,
+        explain: "Di dalam kelapa ada daging putih (white meat) dan air kelapa (coconut water) yang segar."
+      }
+    },
+    {
+      topic: "🍒 Cherry",
+      left: {
+        q: "Cherries are small, round fruits that are usually ...?",
+        options: ["Green", "Red or dark red", "Yellow", "Orange"],
+        answer: 1,
+        explain: "Ceri (cherry) adalah buah kecil bulat yang biasanya berwarna merah atau merah tua (red or dark red)."
+      },
+      right: {
+        q: "Cherries have a ... inside that you cannot eat.",
+        options: ["Seed", "Pit/Stone", "Leaf", "Branch"],
+        answer: 1,
+        explain: "Ceri memiliki biji keras (pit/stone) di tengahnya yang tidak bisa dimakan. 'Stone' = batu/biji keras."
+      }
+    }
+  ];
+
+  let currentRound = 0;
+  let currentTurn = 'left';
+  let scoreLeft = 0;
+  let scoreRight = 0;
+  let turtlePosition = 5; // persentase dari kiri (5% = start)
+  let rabbitPosition = 5;
+  let totalQuestionsAnswered = 0;
+
+  const turtle = document.getElementById('turtle');
+  const rabbit = document.getElementById('rabbit');
+  const turnIndicator = document.getElementById('turnIndicator');
+
+  function loadQuestion() {
+    const topic = questions[currentRound];
+    const qData = topic[currentTurn];
+
+    const qGlobalNum = currentRound * 2 + (currentTurn === 'left' ? 1 : 2);
+    document.getElementById('qNumber').textContent = `Soal ${qGlobalNum} dari 10`;
+    document.getElementById('qTopic').textContent = topic.topic;
+    document.getElementById('roundInfo').textContent = `${currentRound + 1} / 5`;
+
+    if (currentTurn === 'left') {
+      turnIndicator.className = 'turn-indicator left-turn';
+      turnIndicator.innerHTML = '🎤 Giliran: KURA-KURA 🐢';
+      turtle.classList.add('active');
+      rabbit.classList.remove('active');
+    } else {
+      turnIndicator.className = 'turn-indicator right-turn';
+      turnIndicator.innerHTML = '🎤 Giliran: KELINCI 🐰';
+      rabbit.classList.add('active');
+      turtle.classList.remove('active');
+    }
+
+    document.getElementById('questionText').textContent = qData.q;
+    document.getElementById('feedback').className = 'feedback';
+    document.getElementById('feedback').textContent = '';
+
+    const optionsDiv = document.getElementById('options');
+    optionsDiv.innerHTML = '';
+    qData.options.forEach((opt, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'option';
+      btn.textContent = String.fromCharCode(65+idx) + '. ' + opt;
+      btn.onclick = () => answerQuestion(idx, btn);
+      optionsDiv.appendChild(btn);
+    });
+  }
+
+  function answerQuestion(idx, btn) {
+    const qData = questions[currentRound][currentTurn];
+    const allOptions = document.querySelectorAll('.option');
+    allOptions.forEach(o => o.disabled = true);
+
+    const feedback = document.getElementById('feedback');
+    const isCorrect = idx === qData.answer;
+
+    if (isCorrect) {
+      btn.classList.add('correct');
+      if (currentTurn === 'left') {
+        scoreLeft++;
+        turtlePosition += 18; // maju 18% per jawaban benar
+        feedback.className = 'feedback correct show';
+        feedback.innerHTML = `✅ <b>BENAR!</b> Kura-kura maju!<br><small>${qData.explain}</small>`;
+        document.getElementById('scoreLeft').textContent = scoreLeft;
+      } else {
+        scoreRight++;
+        rabbitPosition += 18;
+        feedback.className = 'feedback correct show';
+        feedback.innerHTML = `✅ <b>BENAR!</b> Kelinci maju!<br><small>${qData.explain}</small>`;
+        document.getElementById('scoreRight').textContent = scoreRight;
+      }
+    } else {
+      btn.classList.add('wrong');
+      allOptions[qData.answer].classList.add('correct');
+      if (currentTurn === 'left') {
+        // Kura-kura salah = kelinci maju
+        rabbitPosition += 18;
+        feedback.className = 'feedback wrong show';
+        feedback.innerHTML = `❌ <b>SALAH!</b> Kelinci mengambil alih!<br><small>Jawaban benar: <b>${qData.options[qData.answer]}</b><br>${qData.explain}</small>`;
+      } else {
+        // Kelinci salah = kura-kura maju
+        turtlePosition += 18;
+        feedback.className = 'feedback wrong show';
+        feedback.innerHTML = `❌ <b>SALAH!</b> Kura-kura mengambil alih!<br><small>Jawaban benar: <b>${qData.options[qData.answer]}</b><br>${qData.explain}</small>`;
+      }
+    }
+
+    updatePositions();
+    totalQuestionsAnswered++;
+
+    setTimeout(() => {
+      turtle.classList.remove('active');
+      rabbit.classList.remove('active');
+
+      if (currentTurn === 'left') {
+        currentTurn = 'right';
+      } else {
+        currentTurn = 'left';
+        currentRound++;
+      }
+
+      if (totalQuestionsAnswered < 10) {
+        loadQuestion();
+      } else {
+        showResult();
+      }
+    }, 2800);
+  }
+
+  function updatePositions() {
+    // Batasi posisi maksimal 90% (finish line)
+    turtlePosition = Math.min(turtlePosition, 90);
+    rabbitPosition = Math.min(rabbitPosition, 90);
+    
+    turtle.style.left = turtlePosition + '%';
+    rabbit.style.left = rabbitPosition + '%';
+  }
+
+  function showResult() {
+    document.getElementById('gameArea').style.display = 'none';
+    turtle.classList.remove('active');
+    rabbit.classList.remove('active');
+    
+    // Tambahkan animasi winner
+    if (turtlePosition > rabbitPosition) {
+      turtle.classList.add('winner');
+    } else if (rabbitPosition > turtlePosition) {
+      rabbit.classList.add('winner');
+    }
+
+    const resultScreen = document.getElementById('resultScreen');
+    resultScreen.classList.add('show');
+
+    const icon = document.getElementById('resultIcon');
+    const title = document.getElementById('resultTitle');
+    const msg = document.getElementById('resultMsg');
+
+    if (turtlePosition > rabbitPosition) {
+      icon.textContent = '🐢🏆';
+      title.textContent = 'KURA-KURA MENANG! 🎉';
+      title.style.color = '#55efc4';
+      msg.innerHTML = `Selamat! Kura-kura sampai finish lebih dulu!<br>
+                       Skor akhir: <b>Kura-kura ${scoreLeft} - ${scoreRight} Kelinci</b><br>
+                       Penguasaan vocabulary buah-buahan sangat baik! 👏<br>
+                       <small>"Slow and steady wins the race!"</small>`;
+    } else if (rabbitPosition > turtlePosition) {
+      icon.textContent = '🐰🏆';
+      title.textContent = 'KELINCI MENANG!';
+      title.style.color = '#fd79a8';
+      msg.innerHTML = `Kelinci sampai finish lebih dulu!<br>
+                       Skor akhir: <b>Kelinci ${scoreRight} - ${scoreLeft} Kura-kura</b><br>
+                       Ayo pelajari kembali nama-nama buah dan coba lagi! 📚`;
+    } else {
+      icon.textContent = '🤝';
+      title.textContent = 'LOMBA SERI!';
+      title.style.color = '#ffeaa7';
+      msg.innerHTML = `Kura-kura dan kelinci sampai finish bersamaan!<br>
+                       Skor akhir <b>${scoreLeft} - ${scoreRight}</b>.<br>
+                       Main lagi untuk menentukan pemenang!`;
+    }
+  }
+
+  function restartGame() {
+    currentRound = 0;
+    currentTurn = 'left';
+    scoreLeft = 0;
+    scoreRight = 0;
+    turtlePosition = 5;
+    rabbitPosition = 5;
+    totalQuestionsAnswered = 0;
+    document.getElementById('scoreLeft').textContent = '0';
+    document.getElementById('scoreRight').textContent = '0';
+    document.getElementById('gameArea').style.display = 'block';
+    document.getElementById('resultScreen').classList.remove('show');
+    turtle.style.left = '5%';
+    rabbit.style.left = '5%';
+    turtle.classList.remove('winner');
+    rabbit.classList.remove('winner');
+    loadQuestion();
+  }
+
+  loadQuestion();
+</script>
+</body>
+</html>
